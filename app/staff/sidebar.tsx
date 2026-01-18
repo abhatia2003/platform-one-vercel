@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, LayoutGrid, ClipboardList, MessageSquare, Users, Plus, ShieldCheck } from "lucide-react";
+import { LayoutGrid, ClipboardList, MessageSquare, Users, Plus, ShieldCheck } from "lucide-react";
 
 type Category = {
   name: string;
@@ -14,14 +14,12 @@ type SidebarProps = {
   sidebarOpen: boolean;
   setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
   categories: Category[];
-  setShowCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function Sidebar({
   sidebarOpen,
   setSidebarOpen,
   categories,
-  setShowCreateModal,
 }: SidebarProps) {
   return (
     <aside
@@ -51,13 +49,13 @@ export default function Sidebar({
       </div>
 
       <div className="p-4">
-        <button
-          onClick={() => setShowCreateModal(true)}
+        <Link
+          href="/staff/create-event"
           className="w-full flex items-center justify-center gap-2 py-2 text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span className="font-bold">Create Event</span>
-        </button>
+        </Link>
       </div>
 
       <nav className="flex-1 px-2">
@@ -67,14 +65,6 @@ export default function Sidebar({
         >
           <LayoutGrid className="w-5 h-5" />
           <span className="font-semibold">Dashboard</span>
-        </Link>
-
-        <Link
-          href="/staffcalendar"
-          className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-1"
-        >
-          <Calendar className="w-5 h-5" />
-          <span className="font-semibold">Calendar</span>
         </Link>
 
         <Link
@@ -101,19 +91,21 @@ export default function Sidebar({
           <span className="font-semibold">Reports</span>
         </Link>
 
-        <div className="mt-8 px-2">
-          <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wide">
-            Categories
-          </h3>
-          <div className="space-y-2">
-            {categories.map((cat) => (
-              <div key={cat.name} className="w-full flex items-center gap-3 py-2 px-2">
-                <div className={`w-3 h-3 rounded-full ${cat.dotColor}`} />
-                <span className="text-sm text-gray-700 font-medium">{cat.name}</span>
-              </div>
-            ))}
+        {categories.length > 0 && (
+          <div className="mt-8 px-2">
+            <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wide">
+              Categories
+            </h3>
+            <div className="space-y-2">
+              {categories.map((cat) => (
+                <div key={cat.name} className="w-full flex items-center gap-3 py-2 px-2">
+                  <div className={`w-3 h-3 rounded-full ${cat.dotColor}`} />
+                  <span className="text-sm text-gray-700 font-medium">{cat.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </nav>
     </aside>
   );

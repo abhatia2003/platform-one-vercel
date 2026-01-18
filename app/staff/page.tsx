@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./sidebar";
 import Header from "./components/Header";
 import CalendarGrid from "./components/CalendarGrid";
 import EventList from "./components/EventList";
 import AttendanceTable from "./components/AttendanceTable";
-import CreateEventModal from "./components/CreateEventModal";
 import { CalendarUtils } from "./utils/calendar";
-import { Event, NewEventForm } from "./types";
+import { Event, Attendee } from "./types";
 import {
   INITIAL_EVENTS,
   CATEGORIES,
@@ -17,20 +16,105 @@ import {
 } from "./constants";
 
 export default function StaffPortalPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 6, 1));
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [attendanceTab, setAttendanceTab] = useState<"participants" | "volunteers">("participants");
   const [events, setEvents] = useState<Event[]>(INITIAL_EVENTS);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [attendees, setAttendees] = useState<Attendee[]>(ATTENDANCE_ROWS);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [isLoadingAttendees, setIsLoadingAttendees] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newEvent, setNewEvent] = useState<NewEventForm>({
-    title: "",
-    startDate: "",
-    location: "",
-    capacity: "",
-    category: "workshops",
-    time: "",
-  });
+
+  // Fetch events from database on mount
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setIsLoadingEvents(true);
+        const response = await fetch("/api/events");
+        if (!response.ok) throw new Error("Failed to fetch events");
+        const data = await response.json();
+
+        // Transform database events to calendar format
+        const transformedEvents: Event[] = data.map((event: any, index: number) => {
+          const startDate = new Date(event.start);
+          const bookingCount = event.bookings?.length || 0;
+          
+          // Count participants and volunteers
+          const participantCount = event.bookings?.filter((b: any) => b.roleAtBooking === "PARTICIPANT").length || 0;
+          const volunteerCount = event.bookings?.filter((b: any) => b.roleAtBooking === "VOLUNTEER").length || 0;
+          
+          return {
+            id: index + 1,
+            title: event.name,
+            date: startDate.getDate(),
+            month: startDate.getMonth() + 1,
+            year: startDate.getFullYear(),
+            category: "workshops", // Default category - adjust based on your needs
+            location: event.location,
+            time: startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            capacity: 50, // Default capacity - update schema if needed
+            registered: bookingCount,
+            registeredParticipants: participantCount,
+            registeredVolunteers: volunteerCount,
+            dbId: event.id, // Store database ID for attendee fetching
+          };
+        });
+
+        setEvents(transformedEvents);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+        // Fallback to initial events if fetch fails
+        setEvents(INITIAL_EVENTS);
+      } finally {
+        setIsLoadingEvents(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Fetch attendees when selected event changes
+  useEffect(() => {
+    if (!selectedEvent) {
+      setAttendees([]);
+      return;
+    }
+
+    const fetchAttendees = async () => {
+      try {
+        setIsLoadingAttendees(true);
+        const response = await fetch(
+          `/api/events/${selectedEvent}/attendees?role=${
+            attendanceTab === "participants" ? "PARTICIPANT" : "VOLUNTEER"
+          }`
+        );
+        if (!response.ok) throw new Error("Failed to fetch attendees");
+        const data = await response.json();
+
+        // Transform attendee data to match component expectations
+        const transformedAttendees: Attendee[] = data.map((attendee: any, index: number) => ({
+          id: index + 1,
+          name: attendee.name,
+          email: attendee.email,
+          tier: attendee.tier || "Basic",
+          dietary: attendee.dietary || "None",
+          referral: attendee.referral || "Unknown",
+          lastSeen: "Just now",
+          status: "Checked In",
+        }));
+
+        setAttendees(transformedAttendees);
+      } catch (error) {
+        console.error("Error fetching attendees:", error);
+        setAttendees([]);
+      } finally {
+        setIsLoadingAttendees(false);
+      }
+    };
+
+    fetchAttendees();
+  }, [selectedEvent, attendanceTab]);
 
   const calendarDays = CalendarUtils.getDaysInMonth(currentDate);
   const monthName = MONTH_NAMES[currentDate.getMonth()];
@@ -63,46 +147,22 @@ export default function StaffPortalPage() {
     setSelectedDay(day);
   };
 
-  const handleEventFormChange = (field: keyof NewEventForm, value: string) => {
-    setNewEvent({ ...newEvent, [field]: value });
+
+  // Get selected event title for display
+  const getSelectedEventTitle = () => {
+    if (!selectedEvent) return undefined;
+    const event = events.find((e) => e.dbId === selectedEvent);
+    return event?.title;
   };
 
-  const handleCreateEvent = () => {
-    if (!newEvent.title || !newEvent.startDate) return;
-    
-    const [year, month, day] = newEvent.startDate.split("-").map(Number);
-    const event: Event = {
-      id: events.length + 1,
-      title: newEvent.title,
-      date: day,
-      month: month,
-      year: year,
-      category: newEvent.category,
-      location: newEvent.location,
-      time: newEvent.time,
-      capacity: newEvent.capacity ? parseInt(newEvent.capacity) : undefined,
-      registered: 0,
-    };
-    
-    setEvents([...events, event]);
-    setShowCreateModal(false);
-    setNewEvent({
-      title: "",
-      startDate: "",
-      location: "",
-      capacity: "",
-      category: "workshops",
-      time: "",
-    });
-  };
-
+  const shouldShowCategories = true; // Show categories on main staff dashboard
+  
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
-        categories={CATEGORIES}
-        setShowCreateModal={setShowCreateModal}
+        categories={shouldShowCategories ? CATEGORIES : []}
       />
 
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -127,28 +187,24 @@ export default function StaffPortalPage() {
             />
 
             <EventList
-              events={selectedDayEvents.length > 0 ? selectedDayEvents : events}
+              events={selectedDayEvents}
               categories={CATEGORIES}
               selectedDay={selectedDay}
               monthName={monthName}
+              selectedEvent={selectedEvent}
+              onEventSelect={setSelectedEvent}
             />
           </section>
 
           <AttendanceTable
-            attendees={ATTENDANCE_ROWS}
+            attendees={attendees}
             activeTab={attendanceTab}
             onTabChange={setAttendanceTab}
+            isLoading={isLoadingAttendees}
+            selectedEventTitle={getSelectedEventTitle()}
           />
         </div>
       </main>
-
-      <CreateEventModal
-        isOpen={showCreateModal}
-        eventForm={newEvent}
-        onClose={() => setShowCreateModal(false)}
-        onChange={handleEventFormChange}
-        onSubmit={handleCreateEvent}
-      />
     </div>
   );
 }

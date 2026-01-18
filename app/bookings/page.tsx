@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Menu, Bell, Search } from "lucide-react";
+import UserSidebar from "../components/UserSidebar";
+import UserDropdown from "../components/UserDropdown";
 
 interface Event {
   id: string;
@@ -36,6 +39,10 @@ export default function BookingsParticipantPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("Participant");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [totalBookedHours, setTotalBookedHours] = useState<number>(0);
+  const [numberOfEventsBooked, setNumberOfEventsBooked] = useState<number>(0);
 
   useEffect(() => {
     const fetchUserAndBookings = async () => {
@@ -48,6 +55,7 @@ export default function BookingsParticipantPage() {
           if (users[0]) {
             const currentUserId = users[0].id;
             setUserId(currentUserId);
+            setUserName(users[0].name || "Participant");
 
             // Fetch bookings for this user
             const bookingsResponse = await fetch(
@@ -76,6 +84,19 @@ export default function BookingsParticipantPage() {
                 upcoming,
                 completed,
               });
+
+              // Calculate total booked hours and count events
+              let totalHours = 0;
+              bookingsData.forEach((booking: Booking) => {
+                const eventStart = new Date(booking.event.start);
+                const eventEnd = new Date(booking.event.end);
+                const hours =
+                  (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60);
+                totalHours += hours;
+              });
+
+              setTotalBookedHours(Math.round(totalHours * 10) / 10); // Round to 1 decimal
+              setNumberOfEventsBooked(bookingsData.length);
             } else {
               setError("Failed to fetch bookings");
             }
@@ -106,37 +127,83 @@ export default function BookingsParticipantPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex h-screen bg-gray-50">
+        <UserSidebar 
+          sidebarOpen={sidebarOpen} 
+          setSidebarOpen={setSidebarOpen}
+          totalBookedHours={totalBookedHours}
+          numberOfEventsBooked={numberOfEventsBooked}
+        />
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
               <p className="mt-4 text-gray-600">Loading bookings...</p>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="flex h-screen bg-gray-50">
+      <UserSidebar 
+        sidebarOpen={sidebarOpen} 
+        setSidebarOpen={setSidebarOpen}
+        totalBookedHours={totalBookedHours}
+        numberOfEventsBooked={numberOfEventsBooked}
+      />
+      <main className="flex-1 flex flex-col overflow-hidden">
+      <header className="bg-white border-b border-gray-200 px-8 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <p className="text-xs text-gray-500">
+                Calendar / My Bookings
+              </p>
+              <h2 className="text-lg font-bold text-gray-900">
+                My Bookings
+              </h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <Search className="w-5 h-5 text-gray-600" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <Bell className="w-5 h-5 text-gray-600" />
+            </button>
+            <UserDropdown
+              userName={userName}
+              userRole="PARTICIPANT"
+            />
+          </div>
+        </div>
+      </header>
+      <div className="flex-1 overflow-y-auto p-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">My Bookings</h1>
               <p className="text-gray-600 mt-2">View your upcoming and completed events</p>
             </div>
             <Link
               href="/calendar"
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+              className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
             >
               Browse Events
             </Link>
           </div>
         </div>
+
+
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-800">
@@ -169,7 +236,7 @@ export default function BookingsParticipantPage() {
             </p>
             <Link
               href="/calendar"
-              className="inline-block px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+              className="inline-block px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition"
             >
               Browse Events
             </Link>
@@ -334,6 +401,7 @@ export default function BookingsParticipantPage() {
           </>
         )}
       </div>
+      </main>
     </div>
   );
 }

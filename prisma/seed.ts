@@ -69,14 +69,14 @@ async function main() {
 
   console.log(`✅ Created ${5} users`);
 
-  // Create Events for January 2025
+  // Create Events for January 2026
   console.log("📅 Creating events...");
   
   const workshopEvent1 = await prisma.event.create({
     data: {
       name: "Introduction to Community Service",
-      start: new Date("2025-01-06T14:00:00"),
-      end: new Date("2025-01-06T16:00:00"),
+      start: new Date("2026-01-06T14:00:00"),
+      end: new Date("2026-01-06T16:00:00"),
       location: "Main Hall A",
       minTier: "BRONZE",
       createdById: staff1.id,
@@ -108,8 +108,8 @@ async function main() {
   const communityEvent = await prisma.event.create({
     data: {
       name: "Community Park Cleanup",
-      start: new Date("2025-01-08T09:00:00"),
-      end: new Date("2025-01-08T12:00:00"),
+      start: new Date("2026-01-08T09:00:00"),
+      end: new Date("2026-01-08T12:00:00"),
       location: "Central Park",
       minTier: "BRONZE",
       createdById: staff1.id,
@@ -141,8 +141,8 @@ async function main() {
   const counselingEvent = await prisma.event.create({
     data: {
       name: "Mental Wellness Counseling Session",
-      start: new Date("2025-01-13T15:00:00"),
-      end: new Date("2025-01-13T16:30:00"),
+      start: new Date("2026-01-13T15:00:00"),
+      end: new Date("2026-01-13T16:30:00"),
       location: "Counseling Center Room 201",
       minTier: "SILVER",
       createdById: staff1.id,
@@ -174,8 +174,8 @@ async function main() {
   const orientationEvent = await prisma.event.create({
     data: {
       name: "New Volunteer Orientation Hub",
-      start: new Date("2025-01-14T10:00:00"),
-      end: new Date("2025-01-14T12:00:00"),
+      start: new Date("2026-01-14T10:00:00"),
+      end: new Date("2026-01-14T12:00:00"),
       location: "Conference Room B",
       minTier: "BRONZE",
       createdById: staff1.id,
@@ -201,8 +201,8 @@ async function main() {
   const workshopEvent2 = await prisma.event.create({
     data: {
       name: "Leadership Skills Workshop",
-      start: new Date("2025-01-16T13:00:00"),
-      end: new Date("2025-01-16T17:00:00"),
+      start: new Date("2026-01-16T13:00:00"),
+      end: new Date("2026-01-16T17:00:00"),
       location: "Training Center",
       minTier: "GOLD",
       createdById: staff1.id,
@@ -228,8 +228,8 @@ async function main() {
   const serviceEvent = await prisma.event.create({
     data: {
       name: "Food Distribution Service",
-      start: new Date("2025-01-21T08:00:00"),
-      end: new Date("2025-01-21T14:00:00"),
+      start: new Date("2026-01-21T08:00:00"),
+      end: new Date("2026-01-21T14:00:00"),
       location: "Community Center Downtown",
       minTier: "BRONZE",
       createdById: staff1.id,
@@ -255,8 +255,8 @@ async function main() {
   const participantOrientation = await prisma.event.create({
     data: {
       name: "New Participant Orientation",
-      start: new Date("2025-01-23T14:00:00"),
-      end: new Date("2025-01-23T16:00:00"),
+      start: new Date("2026-01-23T14:00:00"),
+      end: new Date("2026-01-23T16:00:00"),
       location: "Main Auditorium",
       minTier: "BRONZE",
       createdById: staff1.id,
@@ -282,8 +282,8 @@ async function main() {
   const volunteeringEvent = await prisma.event.create({
     data: {
       name: "Youth Mentorship Volunteering",
-      start: new Date("2025-01-23T10:00:00"),
-      end: new Date("2025-01-23T13:00:00"),
+      start: new Date("2026-01-23T10:00:00"),
+      end: new Date("2026-01-23T13:00:00"),
       location: "Youth Center",
       minTier: "SILVER",
       createdById: staff1.id,
@@ -309,8 +309,8 @@ async function main() {
   const weekendWorkshop = await prisma.event.create({
     data: {
       name: "Weekend Digital Literacy Workshop",
-      start: new Date("2025-01-25T09:00:00"),
-      end: new Date("2025-01-25T12:00:00"),
+      start: new Date("2026-01-25T09:00:00"),
+      end: new Date("2026-01-25T12:00:00"),
       location: "Computer Lab 3",
       minTier: "BRONZE",
       createdById: staff1.id,
@@ -336,8 +336,8 @@ async function main() {
   const mentorshipCall = await prisma.event.create({
     data: {
       name: "Career Mentorship Call",
-      start: new Date("2025-01-28T16:00:00"),
-      end: new Date("2025-01-28T17:30:00"),
+      start: new Date("2026-01-28T16:00:00"),
+      end: new Date("2026-01-28T17:30:00"),
       location: "Virtual - Zoom Link TBA",
       minTier: "SILVER",
       createdById: staff1.id,
@@ -363,8 +363,8 @@ async function main() {
   const staffMeeting = await prisma.event.create({
     data: {
       name: "Monthly Community Review Meeting",
-      start: new Date("2025-01-31T18:00:00"),
-      end: new Date("2025-01-31T20:00:00"),
+      start: new Date("2026-01-31T18:00:00"),
+      end: new Date("2026-01-31T20:00:00"),
       location: "Board Room",
       minTier: "GOLD",
       createdById: staff1.id,

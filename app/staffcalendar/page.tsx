@@ -1,5 +1,17 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { Calendar, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight, Menu } from "lucide-react";
+import Sidebar from "../staff/sidebar";
+import UserDropdown from "../components/UserDropdown";
+
+const CATEGORIES = [
+  { name: "Workshops", color: "bg-orange-100 text-orange-700", dotColor: "bg-orange-500", value: "workshops" },
+  { name: "Counseling", color: "bg-blue-100 text-blue-700", dotColor: "bg-blue-500", value: "counseling" },
+  { name: "Community", color: "bg-green-100 text-green-700", dotColor: "bg-green-500", value: "community" },
+  { name: "Volunteering", color: "bg-purple-100 text-purple-700", dotColor: "bg-purple-500", value: "volunteering" },
+];
 
 const events = [
   {
@@ -20,26 +32,35 @@ const events = [
 ];
 
 export default function StaffCalendarPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
-              Staff Portal
-            </p>
-            <h1 className="text-3xl font-semibold text-gray-900">
-              Staff Calendar
-            </h1>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        categories={CATEGORIES}
+      />
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white border-b border-gray-200 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900">Staff Calendar</h1>
+            </div>
+            <UserDropdown
+              userName="Admin"
+              userRole="ADMIN"
+            />
           </div>
-          <Link
-            href="/staff"
-            className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs uppercase tracking-[0.2em] text-gray-500 hover:text-gray-900"
-          >
-            Back to dashboard
-            <ChevronRight className="h-4 w-4" />
-          </Link>
         </header>
+        <div className="flex-1 overflow-y-auto p-8">
+      <div className="mx-auto max-w-5xl space-y-6">
 
         <section className="rounded-3xl border border-gray-200 bg-white p-6">
           <div className="flex items-center gap-3">
@@ -76,6 +97,8 @@ export default function StaffCalendarPage() {
           </div>
         </section>
       </div>
+      </div>
+      </main>
     </div>
   );
 }

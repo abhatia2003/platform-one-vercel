@@ -9,7 +9,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "UnityCalendar",
+  title: "Platform One",
   description: "Calendar and booking management system",
 };
 

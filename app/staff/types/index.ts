@@ -11,6 +11,9 @@ export type Event = {
   time?: string;
   capacity?: number;
   registered?: number;
+  registeredParticipants?: number;
+  registeredVolunteers?: number;
+  dbId?: string; // Database ID for fetching attendees
 };
 
 export type AttendanceStatus = "Checked In" | "Expected" | "No-show" | "On-site";

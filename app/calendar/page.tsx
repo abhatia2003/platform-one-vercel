@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import EventDetailModal from "./components/EventDetailModal";
 import UserDropdown from "../components/UserDropdown";
+import UserSidebar from "../components/UserSidebar";
 
 type CalendarEvent = {
   id: string;
@@ -76,7 +77,7 @@ const categories = [
 export default function Home() {
   const router = useRouter();
 
-  const [currentMonth] = useState("January 2025");
+  const [currentMonth] = useState("January 2026");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -277,13 +278,13 @@ export default function Home() {
 
   const getEventsForDay = (day: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return [];
-    // Filter events that fall on this day in January 2025
+    // Filter events that fall on this day in January 2026
     return events.filter((event) => {
       const eventDate = new Date(event.start);
       const matchesDate = (
         eventDate.getDate() === day &&
         eventDate.getMonth() === 0 && // January
-        eventDate.getFullYear() === 2025
+        eventDate.getFullYear() === 2026
       );
       
       if (!matchesDate) return false;
@@ -309,98 +310,12 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside
-        className={`${
-          sidebarOpen ? "w-64" : "w-0"
-        } transition-all duration-300 bg-white border-r border-gray-200 flex flex-col overflow-hidden`}
-      >
-        <div className="p-4 border-b border-gray-200">
-          <div
-            className="flex items-center gap-2"
-            onClick={() => {
-              router.push("/");
-            }}
-          >
-            <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-black">PlatformOne</span>
-          </div>
-        </div>
-
-        {/* User Profile */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-xl">
-              👤
-            </div>
-            <div className="flex-1">
-              <div className="font-bold text-sm text-gray-900">{userName}</div>
-              <div className="text-xs text-gray-500 uppercase font-medium">
-                Participant
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-2 pt-10">
-          <button
-            onClick={handleBookingsClick}
-            className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-1"
-          >
-            <LayoutGrid className="w-5 h-5" />
-            <span className="font-semibold">My Bookings</span>
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 bg-red-500 text-white rounded-lg transition-colors mb-1">
-            <Calendar className="w-5 h-5" />
-            <span className="font-semibold">Calendar</span>
-          </button>
-          {/* My Bookings */}
-          <div className="mt-6 px-2">
-            <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wide">
-              My Bookings
-            </h3>
-            <div className="space-y-2 mb-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Total Booked</span>
-                <span className="font-bold">
-                  {totalBookedHours} {totalBookedHours === 1 ? "hr" : "hrs"}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Events Booked</span>
-                <span className="font-bold">
-                  {numberOfEventsBooked} {numberOfEventsBooked === 1 ? "event" : "events"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Categories */}
-          <div className="mt-4 px-2 pt-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wide">
-              Categories
-            </h3>
-            <div className="space-y-2">
-              {categories.map((category, index) => (
-                <button
-                  key={index}
-                  className="w-full flex items-center gap-3 py-2 px-2 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div
-                    className={`w-3 h-3 rounded-full ${category.dotColor}`}
-                  ></div>
-                  <span className="text-sm text-gray-700 font-medium">
-                    {category.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </nav>
-      </aside>
+      <UserSidebar 
+        sidebarOpen={sidebarOpen} 
+        setSidebarOpen={setSidebarOpen}
+        totalBookedHours={totalBookedHours}
+        numberOfEventsBooked={numberOfEventsBooked}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -414,8 +329,15 @@ export default function Home() {
               >
                 <Menu className="w-5 h-5" />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900">{currentMonth}</h1>
-              <div className="flex gap-2">
+              <div>
+                <p className="text-xs text-gray-500">
+                  Calendar / Browse Events
+                </p>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {currentMonth}
+                </h2>
+              </div>
+              <div className="flex gap-2 ml-4">
                 <button className="p-2 hover:bg-gray-100 rounded-lg">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -423,7 +345,7 @@ export default function Home() {
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
-              <button className="px-4 py-2 text-red-500 font-bold hover:bg-red-50 rounded-lg">
+              <button className="px-4 py-2 text-slate-900 font-bold hover:bg-slate-100 rounded-lg">
                 TODAY
               </button>
             </div>
@@ -459,7 +381,7 @@ export default function Home() {
               onClick={() => setFilterType("all")}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filterType === "all"
-                  ? "bg-red-500 text-white"
+                  ? "bg-slate-900 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
@@ -469,7 +391,7 @@ export default function Home() {
               onClick={() => setFilterType("booked")}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filterType === "booked"
-                  ? "bg-red-500 text-white"
+                  ? "bg-slate-900 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >

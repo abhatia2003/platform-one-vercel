@@ -6,6 +6,8 @@ type EventListProps = {
   categories: Category[];
   selectedDay: number | null;
   monthName: string;
+  selectedEvent?: string | null;
+  onEventSelect?: (eventId: string) => void;
 };
 
 export default function EventList({
@@ -13,9 +15,9 @@ export default function EventList({
   categories,
   selectedDay,
   monthName,
+  selectedEvent,
+  onEventSelect,
 }: EventListProps) {
-  const displayEvents = selectedDay ? events : events.slice(0, 5);
-
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
@@ -26,18 +28,29 @@ export default function EventList({
           <p className="text-sm text-gray-500">
             {selectedDay
               ? `${events.length} event${events.length !== 1 ? "s" : ""} scheduled`
-              : "Next events"}
+              : "Select a day to view events"}
           </p>
         </div>
       </div>
 
       <div className="space-y-3 max-h-[500px] overflow-y-auto">
-        {displayEvents.map((event) => {
+        {events.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">
+            {selectedDay ? "No events scheduled for this day" : "Select a day to view events"}
+          </div>
+        ) : (
+          events.map((event) => {
           const category = categories.find((c) => c.value === event.category);
+          const isSelected = selectedEvent === event.dbId;
           return (
             <div
               key={event.id}
-              className="p-3 border border-gray-200 rounded-lg hover:border-slate-300 transition-colors"
+              className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                isSelected
+                  ? "border-slate-900 bg-slate-50"
+                  : "border-gray-200 hover:border-slate-300"
+              }`}
+              onClick={() => onEventSelect?.(event.dbId || "")}
             >
               <div className="flex items-start justify-between mb-2">
                 <h4 className="font-semibold text-sm text-gray-900">{event.title}</h4>
@@ -60,14 +73,27 @@ export default function EventList({
                 </div>
               )}
               {event.capacity && (
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <UserCheck className="w-3 h-3" />
-                  {event.registered}/{event.capacity} registered
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <UserCheck className="w-3 h-3" />
+                    {event.registered}/{event.capacity} total registered
+                  </div>
+                  {(event.registeredParticipants !== undefined || event.registeredVolunteers !== undefined) && (
+                    <div className="text-xs text-gray-400 pl-5">
+                      {event.registeredParticipants !== undefined && (
+                        <span>Participants: {event.registeredParticipants} </span>
+                      )}
+                      {event.registeredVolunteers !== undefined && (
+                        <span>Volunteers: {event.registeredVolunteers}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           );
-        })}
+        })
+        )}
       </div>
     </div>
   );
