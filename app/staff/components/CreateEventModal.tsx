@@ -24,7 +24,7 @@ export default function CreateEventModal({
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-gray-900">Create New Event</h3>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-gray-700" />
           </button>
         </div>
 
@@ -38,7 +38,7 @@ export default function CreateEventModal({
               placeholder="Event Title"
               value={eventForm.title}
               onChange={(e) => onChange("title", e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
@@ -49,7 +49,7 @@ export default function CreateEventModal({
                 type="date"
                 value={eventForm.startDate}
                 onChange={(e) => onChange("startDate", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900"
               />
             </div>
             <div>
@@ -58,7 +58,7 @@ export default function CreateEventModal({
                 type="time"
                 value={eventForm.time}
                 onChange={(e) => onChange("time", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900"
               />
             </div>
           </div>
@@ -71,7 +71,7 @@ export default function CreateEventModal({
                 placeholder="Main Hall or Zoom"
                 value={eventForm.location}
                 onChange={(e) => onChange("location", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
             <div>
@@ -81,7 +81,7 @@ export default function CreateEventModal({
                 placeholder="50"
                 value={eventForm.capacity}
                 onChange={(e) => onChange("capacity", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function CreateEventModal({
             <select
               value={eventForm.category}
               onChange={(e) => onChange("category", e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900"
             >
               <option value="workshops">Workshops</option>
               <option value="counseling">Counseling</option>

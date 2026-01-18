@@ -1,3 +1,339 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+interface Event {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  location: string;
+  minTier: string;
+}
+
+interface Booking {
+  id: string;
+  userId: string;
+  eventId: string;
+  roleAtBooking: "PARTICIPANT" | "VOLUNTEER";
+  createdAt: string;
+  event: Event;
+}
+
+interface BookingsByStatus {
+  upcoming: Booking[];
+  completed: Booking[];
+}
+
 export default function BookingsParticipantPage() {
-  return <div></div>;
+  const router = useRouter();
+  const [bookings, setBookings] = useState<BookingsByStatus>({
+    upcoming: [],
+    completed: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserAndBookings = async () => {
+      try {
+        setLoading(true);
+        // Fetch first participant user
+        const userResponse = await fetch("/api/users?role=PARTICIPANT&take=1");
+        if (userResponse.ok) {
+          const users = await userResponse.json();
+          if (users[0]) {
+            const currentUserId = users[0].id;
+            setUserId(currentUserId);
+
+            // Fetch bookings for this user
+            const bookingsResponse = await fetch(
+              `/api/bookings?userId=${currentUserId}`
+            );
+            if (bookingsResponse.ok) {
+              const bookingsData = await bookingsResponse.json();
+              const now = new Date();
+
+              // Separate into upcoming and completed
+              const upcoming = bookingsData.filter(
+                (booking: Booking) => new Date(booking.event.start) > now
+              );
+              const completed = bookingsData.filter(
+                (booking: Booking) => new Date(booking.event.start) <= now
+              );
+
+              // Sort upcoming by start time (earliest first)
+              upcoming.sort(
+                (a: Booking, b: Booking) =>
+                  new Date(a.event.start).getTime() -
+                  new Date(b.event.start).getTime()
+              );
+
+              setBookings({
+                upcoming,
+                completed,
+              });
+            } else {
+              setError("Failed to fetch bookings");
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("An error occurred while loading bookings");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserAndBookings();
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-SG", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
+              <p className="mt-4 text-gray-600">Loading bookings...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">My Bookings</h1>
+              <p className="text-gray-600 mt-2">View your upcoming and completed events</p>
+            </div>
+            <Link
+              href="/calendar"
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            >
+              Browse Events
+            </Link>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-red-800">
+            {error}
+          </div>
+        )}
+
+        {bookings.upcoming.length === 0 && bookings.completed.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="text-gray-500 mb-4">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No bookings yet
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Start exploring events to make your first booking!
+            </p>
+            <Link
+              href="/calendar"
+              className="inline-block px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            >
+              Browse Events
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Upcoming Events */}
+            {bookings.upcoming.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  Upcoming Events
+                </h2>
+                <div className="grid gap-4">
+                  {bookings.upcoming.map((booking) => (
+                    <div
+                      key={booking.id}
+                      className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6 border-l-4 border-green-500"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900">
+                            {booking.event.name}
+                          </h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Role: {booking.roleAtBooking}
+                          </p>
+                        </div>
+                        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                          Upcoming
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center text-gray-700">
+                          <svg
+                            className="w-5 h-5 mr-2 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span className="text-sm">
+                            {formatDate(booking.event.start)}
+                          </span>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <svg
+                            className="w-5 h-5 mr-2 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          <span className="text-sm">{booking.event.location}</span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-gray-600">
+                        Ends: {formatDate(booking.event.end)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Completed Events */}
+            {bookings.completed.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  Completed Events
+                </h2>
+                <div className="grid gap-4">
+                  {bookings.completed.map((booking) => (
+                    <div
+                      key={booking.id}
+                      className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6 border-l-4 border-gray-400 opacity-75"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900">
+                            {booking.event.name}
+                          </h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Role: {booking.roleAtBooking}
+                          </p>
+                        </div>
+                        <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
+                          Completed
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center text-gray-700">
+                          <svg
+                            className="w-5 h-5 mr-2 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span className="text-sm">
+                            {formatDate(booking.event.start)}
+                          </span>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <svg
+                            className="w-5 h-5 mr-2 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          <span className="text-sm">{booking.event.location}</span>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-gray-600">
+                        Ended: {formatDate(booking.event.end)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
 }

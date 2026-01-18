@@ -1,4 +1,7 @@
+"use client";
+
 import { Bell, Search, ChevronDown, Menu } from "lucide-react";
+import UserDropdown from "../../components/UserDropdown";
 
 type HeaderProps = {
   monthName: string;
@@ -33,17 +36,11 @@ export default function Header({ monthName, year, onMenuClick }: HeaderProps) {
               className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
             />
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-lg relative">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-          </button>
-          <button className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm">
-            <span className="w-6 h-6 bg-slate-900 text-white rounded-full flex items-center justify-center text-xs">
-              WA
-            </span>
-            Walter Admin
-            <ChevronDown className="w-4 h-4 text-gray-500" />
-          </button>
+          <UserDropdown
+            userName="Walter Admin"
+            userRole="ADMIN"
+            userInitials="WA"
+          />
         </div>
       </div>
     </header>

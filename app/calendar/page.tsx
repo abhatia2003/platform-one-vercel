@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -8,33 +8,47 @@ import {
   Search,
   Bell,
   Menu,
-  Plus,
   LayoutGrid,
   Calendar,
   MessageSquare,
   ChevronDown,
 } from "lucide-react";
+import EventDetailModal from "./components/EventDetailModal";
+import UserDropdown from "../components/UserDropdown";
 
-type Event = {
-  id: number;
-  title: string;
-  date: number;
-  category: "workshops" | "counseling" | "community" | "volunteering";
+type CalendarEvent = {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  location: string;
+  minTier: string;
 };
 
-const events: Event[] = [
-  { id: 1, title: "Call with Coord.", date: 6, category: "workshops" },
-  { id: 2, title: "Community Park", date: 8, category: "community" },
-  { id: 3, title: "Counseling Session", date: 13, category: "counseling" },
-  { id: 4, title: "Orientation Hub", date: 14, category: "workshops" },
-  { id: 5, title: "Layout Review", date: 16, category: "workshops" },
-  { id: 6, title: "Service Layout", date: 21, category: "community" },
-  { id: 7, title: "Participant Orientation", date: 23, category: "counseling" },
-  { id: 8, title: "Volunteering", date: 23, category: "volunteering" },
-  { id: 9, title: "Weekend Workshop", date: 25, category: "workshops" },
-  { id: 10, title: "Mentorship Call", date: 28, category: "counseling" },
-  { id: 11, title: "Staff Meeting", date: 31, category: "community" },
-];
+type FilterType = "all" | "booked";
+
+// Mock user data - In production, this would come from authentication context
+// Using the first seed user from the database (walter@participant.com)
+const MOCK_USER = {
+  id: "", // Will be set from localStorage or hardcoded after first login
+  name: "Walter Sullivan",
+  role: "PARTICIPANT" as "PARTICIPANT" | "VOLUNTEER",
+};
+
+// Placeholder - should be replaced with actual authentication
+// For now, we'll fetch the first participant user from the database
+const getUserId = async () => {
+  try {
+    const response = await fetch("/api/users?role=PARTICIPANT&take=1");
+    if (response.ok) {
+      const users = await response.json();
+      if (users[0]) return users[0].id;
+    }
+  } catch (error) {
+    console.error("Failed to fetch user:", error);
+  }
+  return "";
+};
 
 const categories = [
   {
@@ -59,21 +73,165 @@ const categories = [
   },
 ];
 
-const categoryStyles = {
-  workshops: "bg-orange-100 text-orange-700 border-orange-200",
-  counseling: "bg-blue-100 text-blue-700 border-blue-200",
-  community: "bg-green-100 text-green-700 border-green-200",
-  volunteering: "bg-purple-100 text-purple-700 border-purple-200",
-};
-
 export default function Home() {
   const router = useRouter();
 
   const [currentMonth] = useState("January 2025");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string>("");
+  const [userName, setUserName] = useState<string>("Participant");
+  const [totalBookedHours, setTotalBookedHours] = useState<number>(0);
+  const [numberOfEventsBooked, setNumberOfEventsBooked] = useState<number>(0);
+  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [bookedEventIds, setBookedEventIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetchUserAndEvents();
+  }, []);
+
+  const fetchUserAndEvents = async () => {
+    try {
+      setLoading(true);
+      // Fetch first participant user
+      const userResponse = await fetch("/api/users?role=PARTICIPANT&take=1");
+      if (userResponse.ok) {
+        const users = await userResponse.json();
+        if (users[0]) {
+          const currentUserId = users[0].id;
+          setUserId(currentUserId);
+          setUserName(users[0].name);
+
+          // Fetch user's bookings
+          const bookingsResponse = await fetch(
+            `/api/bookings?userId=${currentUserId}`
+          );
+          if (bookingsResponse.ok) {
+            const bookingsData = await bookingsResponse.json();
+
+            // Calculate total booked hours and count events
+            let totalHours = 0;
+            const bookedIds = new Set<string>();
+
+            bookingsData.forEach((booking: any) => {
+              bookedIds.add(booking.eventId);
+              const eventStart = new Date(booking.event.start);
+              const eventEnd = new Date(booking.event.end);
+              const hours =
+                (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60);
+              totalHours += hours;
+            });
+
+            setTotalBookedHours(Math.round(totalHours * 10) / 10); // Round to 1 decimal
+            setNumberOfEventsBooked(bookingsData.length);
+            setBookedEventIds(bookedIds);
+          }
+        }
+      }
+
+      // Fetch events
+      const eventsResponse = await fetch("/api/events");
+      if (eventsResponse.ok) {
+        const data = await eventsResponse.json();
+        setEvents(data);
+      } else {
+        console.error("Failed to fetch events");
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch("/api/events");
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data);
+      } else {
+        console.error("Failed to fetch events");
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    }
+  };
 
   const handleBookingsClick = () => {
     router.push("/bookings");
+  };
+
+  const handleEventClick = (eventId: string) => {
+    setSelectedEventId(eventId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedEventId(null);
+  };
+
+  const handleBookingSuccess = async () => {
+    setSuccessMessage("Successfully booked the event!");
+    
+    // Refresh events and update booked events list
+    try {
+      // Fetch updated bookings
+      if (userId) {
+        const bookingsResponse = await fetch(`/api/bookings?userId=${userId}`);
+        if (bookingsResponse.ok) {
+          const bookingsData = await bookingsResponse.json();
+          const bookedIds = new Set<string>();
+          
+          bookingsData.forEach((booking: any) => {
+            bookedIds.add(booking.eventId);
+          });
+          
+          setBookedEventIds(bookedIds);
+        }
+      }
+      
+      // Refresh events
+      fetchEvents();
+    } catch (error) {
+      console.error("Error refreshing bookings:", error);
+    }
+    
+    setTimeout(() => setSuccessMessage(null), 5000);
+  };
+
+  const handleUnbookSuccess = async () => {
+    setSuccessMessage("Successfully cancelled your booking!");
+    
+    // Refresh events and update booked events list
+    try {
+      // Fetch updated bookings
+      if (userId) {
+        const bookingsResponse = await fetch(`/api/bookings?userId=${userId}`);
+        if (bookingsResponse.ok) {
+          const bookingsData = await bookingsResponse.json();
+          const bookedIds = new Set<string>();
+          
+          bookingsData.forEach((booking: any) => {
+            bookedIds.add(booking.eventId);
+          });
+          
+          setBookedEventIds(bookedIds);
+        }
+      }
+      
+      // Refresh events
+      fetchEvents();
+    } catch (error) {
+      console.error("Error refreshing bookings:", error);
+    }
+    
+    setTimeout(() => setSuccessMessage(null), 5000);
   };
 
   const daysOfWeek = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
@@ -119,7 +277,34 @@ export default function Home() {
 
   const getEventsForDay = (day: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return [];
-    return events.filter((event) => event.date === day);
+    // Filter events that fall on this day in January 2025
+    return events.filter((event) => {
+      const eventDate = new Date(event.start);
+      const matchesDate = (
+        eventDate.getDate() === day &&
+        eventDate.getMonth() === 0 && // January
+        eventDate.getFullYear() === 2025
+      );
+      
+      if (!matchesDate) return false;
+      
+      // Apply filter based on selected filter type
+      if (filterType === "booked") {
+        return bookedEventIds.has(event.id);
+      }
+      
+      return true;
+    });
+  };
+
+  const getCategoryColor = (eventName: string) => {
+    // Simple categorization based on event name keywords
+    const name = eventName.toLowerCase();
+    if (name.includes("workshop")) return "bg-orange-100 text-orange-700 border-orange-200";
+    if (name.includes("counseling") || name.includes("session")) return "bg-blue-100 text-blue-700 border-blue-200";
+    if (name.includes("community") || name.includes("park")) return "bg-green-100 text-green-700 border-green-200";
+    if (name.includes("volunteer")) return "bg-purple-100 text-purple-700 border-purple-200";
+    return "bg-gray-100 text-gray-700 border-gray-200"; // default
   };
 
   return (
@@ -151,7 +336,7 @@ export default function Home() {
               👤
             </div>
             <div className="flex-1">
-              <div className="font-bold text-sm">Walter Sullivan</div>
+              <div className="font-bold text-sm text-gray-900">{userName}</div>
               <div className="text-xs text-gray-500 uppercase font-medium">
                 Participant
               </div>
@@ -159,35 +344,19 @@ export default function Home() {
           </div>
         </div>
 
-        {/* New Request Button */}
-        <div className="p-4">
-          <button className="w-full flex items-center justify-center gap-2 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-            <Plus className="w-4 h-4" />
-            <span className="font-bold">New Request</span>
-          </button>
-        </div>
-
         {/* Navigation */}
-        <nav className="flex-1 px-2">
+        <nav className="flex-1 px-2 pt-10">
           <button
             onClick={handleBookingsClick}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors mb-1"
           >
             <LayoutGrid className="w-5 h-5" />
-            <span className="font-semibold">Bookings</span>
+            <span className="font-semibold">My Bookings</span>
           </button>
           <button className="w-full flex items-center gap-3 px-4 py-3 bg-red-500 text-white rounded-lg transition-colors mb-1">
             <Calendar className="w-5 h-5" />
             <span className="font-semibold">Calendar</span>
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors relative">
-            <MessageSquare className="w-5 h-5" />
-            <span className="font-semibold">Messages</span>
-            <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-              12
-            </span>
-          </button>
-
           {/* My Bookings */}
           <div className="mt-6 px-2">
             <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wide">
@@ -196,17 +365,21 @@ export default function Home() {
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Total Booked</span>
-                <span className="font-bold">14 hrs</span>
+                <span className="font-bold">
+                  {totalBookedHours} {totalBookedHours === 1 ? "hr" : "hrs"}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Pending</span>
-                <span className="font-bold">2 events</span>
+                <span className="text-gray-600">Events Booked</span>
+                <span className="font-bold">
+                  {numberOfEventsBooked} {numberOfEventsBooked === 1 ? "event" : "events"}
+                </span>
               </div>
             </div>
           </div>
 
           {/* Categories */}
-          <div className="mt-4 px-2">
+          <div className="mt-4 px-2 pt-4">
             <h3 className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wide">
               Categories
             </h3>
@@ -241,7 +414,7 @@ export default function Home() {
               >
                 <Menu className="w-5 h-5" />
               </button>
-              <h1 className="text-2xl font-bold">{currentMonth}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{currentMonth}</h1>
               <div className="flex gap-2">
                 <button className="p-2 hover:bg-gray-100 rounded-lg">
                   <ChevronLeft className="w-5 h-5" />
@@ -261,20 +434,61 @@ export default function Home() {
               <button className="p-2 hover:bg-gray-100 rounded-lg">
                 <Bell className="w-5 h-5 text-gray-600" />
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="font-semibold uppercase text-xs tracking-wide">
-                  Unity Hub
-                </span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
+              <UserDropdown
+                userName={userName}
+                userRole="PARTICIPANT"
+              />
             </div>
           </div>
         </header>
 
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mx-8 mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm font-semibold text-green-800">
+              {successMessage}
+            </p>
+          </div>
+        )}
+
+        {/* Filter Section */}
+        <div className="px-8 pt-6 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-gray-700">Show:</span>
+            <button
+              onClick={() => setFilterType("all")}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                filterType === "all"
+                  ? "bg-red-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              All Events
+            </button>
+            <button
+              onClick={() => setFilterType("booked")}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                filterType === "booked"
+                  ? "bg-red-500 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Booked Events
+            </button>
+          </div>
+        </div>
+
         {/* Calendar Grid */}
         <div className="flex-1 overflow-auto p-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+                <p className="mt-4 text-gray-600">Loading events...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             {/* Days of Week Header */}
             <div className="grid grid-cols-7 border-b border-gray-200">
               {daysOfWeek.map((day, index) => {
@@ -320,11 +534,13 @@ export default function Home() {
                       {dayEvents.map((event) => (
                         <div
                           key={event.id}
-                          className={`text-xs px-2 py-1 rounded border ${
-                            categoryStyles[event.category]
-                          } font-semibold truncate cursor-pointer hover:shadow-sm transition-shadow`}
+                          onClick={() => handleEventClick(event.id)}
+                          className={`text-xs px-2 py-1 rounded border ${getCategoryColor(
+                            event.name
+                          )} font-semibold truncate cursor-pointer hover:shadow-sm transition-shadow`}
+                          title={`${event.name} - Click to view details`}
                         >
-                          {event.title}
+                          {event.name}
                         </div>
                       ))}
                     </div>
@@ -333,8 +549,22 @@ export default function Home() {
               })}
             </div>
           </div>
+          )}
         </div>
       </main>
+
+      {/* Event Detail Modal */}
+      {userId && (
+        <EventDetailModal
+          isOpen={isModalOpen}
+          eventId={selectedEventId}
+          userId={userId}
+          userRole={MOCK_USER.role}
+          onClose={handleCloseModal}
+          onBookingSuccess={handleBookingSuccess}
+          onUnbookSuccess={handleUnbookSuccess}
+        />
+      )}
     </div>
   );
 }
