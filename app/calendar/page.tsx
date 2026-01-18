@@ -28,28 +28,7 @@ type CalendarEvent = {
 type FilterType = "all" | "booked";
 type ViewType = "month" | "week";
 
-// Mock user data - In production, this would come from authentication context
-// Using the first seed user from the database (walter@participant.com)
-const MOCK_USER = {
-  id: "", // Will be set from localStorage or hardcoded after first login
-  name: "Walter Sullivan",
-  role: "PARTICIPANT" as "PARTICIPANT" | "VOLUNTEER",
-};
-
-// Placeholder - should be replaced with actual authentication
-// For now, we'll fetch the first participant user from the database
-// const getUserId = async () => {
-//   try {
-//     const response = await fetch("/api/users?role=PARTICIPANT&take=1");
-//     if (response.ok) {
-//       const users = await response.json();
-//       if (users[0]) return users[0].id;
-//     }
-//   } catch (error) {
-//     console.error("Failed to fetch user:", error);
-//   }
-//   return "";
-// };
+// User data is fetched from localStorage during login
 
 // Categories no longer displayed in UI but kept for reference
 // const categories = [
@@ -87,6 +66,7 @@ export default function Home() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [userId, setUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("Participant");
+  const [userRole, setUserRole] = useState<"PARTICIPANT" | "VOLUNTEER">("PARTICIPANT");
   const [totalBookedHours, setTotalBookedHours] = useState<number>(0);
   const [numberOfEventsBooked, setNumberOfEventsBooked] = useState<number>(0);
   const [filterType, setFilterType] = useState<FilterType>("all");
@@ -102,39 +82,50 @@ export default function Home() {
   const fetchUserAndEvents = async () => {
     try {
       setLoading(true);
-      // Fetch first participant user
-      const userResponse = await fetch("/api/users?role=PARTICIPANT&take=1");
-      if (userResponse.ok) {
-        const users = await userResponse.json();
-        if (users[0]) {
-          const currentUserId = users[0].id;
-          setUserId(currentUserId);
-          setUserName(users[0].name);
+      // Get user from localStorage (set during login)
+      const storedUserId = localStorage.getItem("userId");
+      const storedUserName = localStorage.getItem("userName");
+      
+      if (storedUserId && storedUserName) {
+        setUserId(storedUserId);
+        setUserName(storedUserName);
 
-          // Fetch user's bookings
-          const bookingsResponse = await fetch(
-            `/api/bookings?userId=${currentUserId}`
-          );
-          if (bookingsResponse.ok) {
-            const bookingsData = await bookingsResponse.json();
-
-            // Calculate total booked hours and count events
-            let totalHours = 0;
-            const bookedIds = new Set<string>();
-
-            bookingsData.forEach((booking: { eventId: string; event: { start: string; end: string } }) => {
-              bookedIds.add(booking.eventId);
-              const eventStart = new Date(booking.event.start);
-              const eventEnd = new Date(booking.event.end);
-              const hours =
-                (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60);
-              totalHours += hours;
-            });
-
-            setTotalBookedHours(Math.round(totalHours * 10) / 10); // Round to 1 decimal
-            setNumberOfEventsBooked(bookingsData.length);
-            setBookedEventIds(bookedIds);
+        // Fetch user details from database to get role
+        try {
+          const userResponse = await fetch(`/api/users/${storedUserId}`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            if (userData.role) {
+              setUserRole(userData.role as "PARTICIPANT" | "VOLUNTEER");
+            }
           }
+        } catch (error) {
+          console.error("Error fetching user role:", error);
+        }
+
+        // Fetch user's bookings
+        const bookingsResponse = await fetch(
+          `/api/bookings?userId=${storedUserId}`
+        );
+        if (bookingsResponse.ok) {
+          const bookingsData = await bookingsResponse.json();
+
+          // Calculate total booked hours and count events
+          let totalHours = 0;
+          const bookedIds = new Set<string>();
+
+          bookingsData.forEach((booking: { eventId: string; event: { start: string; end: string } }) => {
+            bookedIds.add(booking.eventId);
+            const eventStart = new Date(booking.event.start);
+            const eventEnd = new Date(booking.event.end);
+            const hours =
+              (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60);
+            totalHours += hours;
+          });
+
+          setTotalBookedHours(Math.round(totalHours * 10) / 10); // Round to 1 decimal
+          setNumberOfEventsBooked(bookingsData.length);
+          setBookedEventIds(bookedIds);
         }
       }
 
@@ -594,7 +585,7 @@ export default function Home() {
         totalBookedHours={totalBookedHours}
         numberOfEventsBooked={numberOfEventsBooked}
         userName={userName}
-        userRole="PARTICIPANT"
+        userRole={userRole}
       />
 
       {/* Main Content */}
@@ -673,7 +664,7 @@ export default function Home() {
               
               <UserDropdown
                 userName={userName}
-                userRole="PARTICIPANT"
+                userRole={userRole}
               />
             </div>
           </div>
@@ -873,7 +864,7 @@ export default function Home() {
           isOpen={isModalOpen}
           eventId={selectedEventId}
           userId={userId}
-          userRole={MOCK_USER.role}
+          userRole={userRole}
           onClose={handleCloseModal}
           onBookingSuccess={handleBookingSuccess}
           onUnbookSuccess={handleUnbookSuccess}

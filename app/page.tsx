@@ -11,13 +11,14 @@ import {
   Lock,
   KeyRound,
   Sparkles,
+  Loader,
 } from "lucide-react";
 
 const roles = [
   {
-    id: "participant",
-    title: "Participant",
-    description: "Book sessions, track schedules, and stay in the loop.",
+    id: "participant-volunteer",
+    title: "Participant / Volunteer",
+    description: "Book sessions, volunteer, and track your involvement.",
     accent: "from-orange-400 via-red-400 to-pink-500",
     icon: Users,
   },
@@ -34,16 +35,76 @@ type RoleId = (typeof roles)[number]["id"];
 
 export default function LoginPage() {
   const router = useRouter();
-  const [role, setRole] = useState<RoleId>("participant");
+  const [role, setRole] = useState<RoleId>("participant-volunteer");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedRole = useMemo(
     () => roles.find((item) => item.id === role),
     [role]
   );
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    router.push(role === "staff" ? "/staff" : "/calendar");
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      const email = formData.get("email") as string;
+      const password = formData.get("password") as string;
+      const accessCode = formData.get("accessCode") as string;
+
+      // Call authentication endpoint
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          role,
+          accessCode: role === "staff" ? accessCode : undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Login failed");
+        return;
+      }
+
+      // Store auth token and user data
+      if (data.token) {
+        localStorage.setItem("authToken", data.token);
+      }
+      
+      // Store user information
+      if (data.user) {
+        localStorage.setItem("userId", data.user.id);
+        localStorage.setItem("userName", data.user.name);
+        localStorage.setItem("userEmail", data.user.email);
+      }
+      
+      if (data.userRole) {
+        localStorage.setItem("userRole", data.userRole);
+      }
+
+      // Route based on user's actual role from database
+      if (data.userRole === "STAFF") {
+        router.push("/staff");
+      } else {
+        // PARTICIPANT or VOLUNTEER
+        router.push("/calendar");
+      }
+    } catch (err) {
+      setError("An error occurred during login. Please try again.");
+      console.error("Login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -94,6 +155,7 @@ export default function LoginPage() {
                       ? "border-white/30 bg-white/10 shadow-xl"
                       : "border-white/10 bg-white/5 hover:border-white/20"
                   }`}
+                  disabled={isLoading}
                 >
                   <div
                     className={`absolute inset-0 opacity-0 transition group-hover:opacity-60 ${
@@ -139,6 +201,12 @@ export default function LoginPage() {
             </h3>
           </div>
 
+          {error && (
+            <div className="mt-4 rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             <label className="block text-sm font-medium text-white/80">
               Email address
@@ -151,6 +219,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   className="w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </label>
@@ -166,6 +235,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   className="w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </label>
@@ -180,6 +250,7 @@ export default function LoginPage() {
                     name="accessCode"
                     placeholder="STAFF-2025"
                     className="w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
+                    disabled={isLoading}
                   />
                 </div>
               </label>
@@ -187,20 +258,35 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-white/90"
+              disabled={isLoading}
+              className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continue as {selectedRole?.title}
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+              {isLoading ? (
+                <>
+                  <Loader className="h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  Continue as {selectedRole?.title}
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </>
+              )}
             </button>
           </form>
 
           <div className="mt-6 flex flex-col gap-3 text-sm text-white/70 sm:flex-row sm:items-center sm:justify-between">
-            <button type="button" className="text-left hover:text-white">
+            <button
+              type="button"
+              className="text-left hover:text-white disabled:opacity-50"
+              disabled={isLoading}
+            >
               Forgot password?
             </button>
             <button
               type="button"
-              className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/70 hover:text-white"
+              className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/70 hover:text-white disabled:opacity-50"
+              disabled={isLoading}
             >
               Need help?
             </button>

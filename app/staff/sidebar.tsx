@@ -32,7 +32,7 @@ export default function Sidebar({
           <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-lg text-black">AdminPanel</span>
+          <span className="font-bold text-lg text-black">PlatformOne</span>
         </Link>
       </div>
 
